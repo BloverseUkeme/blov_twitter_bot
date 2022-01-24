@@ -1,0 +1,9 @@
+tweepy==4.4.0
+requests==2.25.1
+pymongo[srv]
+Flask==2.0.1
+gunicorn==19.4.5
+python-decouple==3.4
+Flask-RESTful==0.3.9
+celery==4.4.0
+redis==3.3.7
