@@ -1,54 +1,38 @@
-import sys
-import os
-
-BASE_DIR = os.getcwd()
-BASE_DIR = BASE_DIR.split("\\")[:-1]
-BASE_DIR = "\\".join(BASE_DIR)
-sys.path.append(BASE_DIR)
+##windows
+# BASE_DIR = os.getcwd()
+# BASE_DIR = BASE_DIR.split("\\")[:-1]
+# BASE_DIR = "\\".join(BASE_DIR)
+# sys.path.append(BASE_DIR)
 
 
-
-from twitterbot.app import create_celery_app
-
-celery = create_celery_app()
-
-
+##linux
+# BASE_DIR = os.getcwd()
+# sys.path.append(BASE_DIR)
 
 import tweepy
 from pymongo import MongoClient
 from datetime import datetime, timedelta
 
-
-from config.settings import CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET
-from config.settings import MONGO_URL
-from config.settings import TEXT_REPLY
-
-from bot_content_service.content_bot import data_from_twitter_bot_to_content_service
-from bot_accounts_service.account_bot import save_user_to_db
-
-# from bot_content_service import content_bot #import data_from_twitter_bot_to_content_service
-# from ..bot_accounts_service.account_bot import save_user_to_db
+from bot_content_service.tasks.content import celery_content_save_to_db
+from bot_accounts_service.tasks.account import celery_account_save_to_db
 
 from mongodb.mongo_util import (
     get_record_details, save_to_mongo_db
-)
+        )
+from init_twit_api import tweepy_api
 
-
-
-client = MongoClient(MONGO_URL)
-db = client.blov_twit_bot
-collection = db.tweet_data
-
-# Authenticate to Twitter
-auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
-
-
-tweepy_api = tweepy.API(auth, wait_on_rate_limit=True)
+from config.settings import MONGO_URL
+from config.settings import TEXT_REPLY
 
 search_date = datetime.now() + timedelta(0)
 
 
+def connect_mongo_db():
+    client = MongoClient(MONGO_URL)
+    db = client.blov_twit_bot
+    collection = db.tweet_data
+
+    return collection
 
 
 def bot_caller_dict_func(item):
@@ -90,6 +74,7 @@ def content_dict_func(creator_dict, bot_caller_dict, thread_id, tag_id):
 def process_tweets(item):    
     
     search_dict = {"tag_id": item['id']}
+    collection =  connect_mongo_db()
     search_query = get_record_details(search_dict, collection, find_one=True)
 
     created_at_datetime = datetime.strftime(datetime.strptime(item['created_at'],'%a %b %d %H:%M:%S +0000 %Y'), '%Y-%m-%d %H:%M:%S')
@@ -130,14 +115,13 @@ def process_tweets(item):
 
                 content_dict = content_dict_func(creator_dict, bot_caller_dict, thread_id, tag_id)
 
-
+                # collection = connect_mongo_db()
                 save_to_mongo_db(data, collection)
                 tweepy_api.update_status(status = TEXT_REPLY, in_reply_to_status_id = tag_id , auto_populate_reply_metadata=True)
 
-                save_user_to_db(bot_caller_dict)
-                save_user_to_db(creator_dict)
-                result = celery.send_task('content.celery_content_save_to_db', (content_dict,), queue="content")
-                # data_from_twitter_bot_to_content_service(content_dict)
+                celery_account_save_to_db.apply_async((bot_caller_dict,), queue="account")
+                celery_account_save_to_db.apply_async((creator_dict,), queue="account")
+                result = celery_content_save_to_db.apply_async((content_dict,), queue="content")
                 print(data)
                 
         except Exception as e:
@@ -171,14 +155,13 @@ def process_tweets(item):
 
                 content_dict = content_dict_func(creator_dict, bot_caller_dict, thread_id, tag_id)
 
-
+                # collection = connect_mongo_db()
                 save_to_mongo_db(data, collection)
                 tweepy_api.update_status(status = TEXT_REPLY, in_reply_to_status_id = tag_id , auto_populate_reply_metadata=True)
 
-                save_user_to_db(bot_caller_dict)
-                save_user_to_db(creator_dict)
-                result = celery.send_task('content.celery_content_save_to_db', (content_dict,), queue="content")
-                # data_from_twitter_bot_to_content_service(content_dict)
+                celery_account_save_to_db.apply_async((bot_caller_dict,), queue="account")
+                celery_account_save_to_db.apply_async((creator_dict,), queue="account")
+                result = celery_content_save_to_db.apply_async((content_dict,), queue="content")
                 print(data)
 
 
@@ -196,4 +179,4 @@ def start_twitter_bot():
 
 
 
-start_twitter_bot()
+#start_twitter_bot()

@@ -13,7 +13,8 @@ from celery import Celery
 CELERY_TASK_LIST = [
     "bot_accounts_service.tasks.account",
     "bot_content_service.tasks.content",
-    "bot_analysis_service.tasks.analysis"
+    "bot_analysis_service.tasks.analysis",
+    "twitterbot.tasks.twitter",
 ]
 
 

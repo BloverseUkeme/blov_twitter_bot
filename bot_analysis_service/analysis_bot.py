@@ -1,25 +1,13 @@
-import tweepy
+import re
+import os
 from pymongo import MongoClient
 from datetime import datetime
-import re
-# from twitterbot.twitter_bot import tweepy_api
-
-
-
-from config.settings import CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET
+from init_twit_api import tweepy_api
 from config.settings import MONGO_URL
 
 from mongodb.mongo_util import (
     get_record_details, save_to_mongo_db
 )
-
-
-# Authenticate to Twitter
-auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
-
-
-tweepy_api = tweepy.API(auth, wait_on_rate_limit=True)
 
 ## fix this later please
 # from bot_content_service.content_bot import listen_from_analysis_service, listen_from_response_service
@@ -128,7 +116,6 @@ def process_tweet_status(tweet_id):
         "video_url": video_url
     }
     
-
     return data_dict
 
 
@@ -255,8 +242,10 @@ def listen_from_response_service(responded=False):
 
 
 def response_service_video(tag_id):
-    text_cta = "This is your video"
-    upload_result = tweepy_api.media_upload('videos/video.mp4')
+    text_cta = "Your Video is ready. Visit www.bloverse.com"
+    path = os.getcwd() + "/videos/vid.mp4"
+    print(path)
+    upload_result = tweepy_api.media_upload(path)
     tweepy_api.update_status(status = text_cta, media_ids = [upload_result.media_id_string], in_reply_to_status_id= tag_id, auto_populate_reply_metadata=True)
 
 

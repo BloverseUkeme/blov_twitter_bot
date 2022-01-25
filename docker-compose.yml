@@ -8,6 +8,7 @@ services:
       gunicorn -b 0.0.0.0:8001 --access-logfile - --reload "twitterbot.app:create_app()"
     env_file:
       - '.env'
+    restart: always
     volumes:
       - '.:/twitterbot'
     ports:
@@ -46,6 +47,13 @@ services:
     volumes:
       - '.:/bot_analysis_service'
 
+  celery_twitter:
+    build: .
+    command: celery -A twitterbot.tasks.twitter.celery worker -B -l info -E -Q twitter
+    env_file:
+      - '.env'
+    volumes:
+      - '.:/twitterbot'
 
    
 volumes:

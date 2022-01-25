@@ -6,21 +6,10 @@ from mongodb.mongo_util import (
     get_record_details, save_to_mongo_db
 )
 
-from bot_analysis_service.analysis_bot import start_analysis_bot
+# from bot_analysis_service.analysis_bot import start_analysis_bot
+from bot_analysis_service.tasks.analysis import celery_analysis_save_to_db
+
 from datetime import datetime
-
-
-# def connect_to_analysis_service(data):
-
-#     payload = json.dumps(data)
-    
-#     headers = {
-#       'Content-Type': 'application/json'
-#     }
-#     response = requests.request("POST", ANALYSIS_SERVICE_URL, headers=headers, data=payload)
-#     print(response.status_code)
-#     print(response.text)
-
 
 
 def remove_object_id(record_list):
@@ -52,7 +41,8 @@ def data_from_twitter_bot_to_content_service(data):
 
         data = remove_object_id(data)
         print(data)
-        start_analysis_bot(content_started_at, data)
+        celery_analysis_save_to_db.apply_async((content_started_at, data), queue="analysis")
+        # start_analysis_bot(content_started_at, data)
         
 
         # print(f"The process too {content_ended_at - content_started_at}")
