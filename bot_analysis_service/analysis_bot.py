@@ -243,7 +243,7 @@ def listen_from_response_service(responded=False):
 
 def response_service_video(tag_id):
     text_cta = "Your Video is ready. Visit www.bloverse.com"
-    path = os.getcwd() + "/videos/vid.mp4"
+    path = os.getcwd() + "/videos/video.mp4"
     print(path)
     upload_result = tweepy_api.media_upload(path)
     tweepy_api.update_status(status = text_cta, media_ids = [upload_result.media_id_string], in_reply_to_status_id= tag_id, auto_populate_reply_metadata=True)
