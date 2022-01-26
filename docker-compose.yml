@@ -55,6 +55,13 @@ services:
     volumes:
       - '.:/twitterbot'
 
+  proxy:
+    build: proxy
+    restart: always
+    ports:
+      - "81:81"
+
+
    
 volumes:
   redis:

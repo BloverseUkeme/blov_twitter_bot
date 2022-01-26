@@ -199,6 +199,9 @@ def check_account_service_status(content_started_at, data):
     tag_id = data['tag_id']
     print(handle)
 
+    content_started_at = datetime.strftime(datetime.strptime(content_started_at,'%Y-%m-%dT%H:%M:%S.%f'), '%Y-%m-%d %H:%M:%S.%f')
+    content_started_at = datetime.strptime(content_started_at, '%Y-%m-%d %H:%M:%S.%f')
+
     search_dict = {"handle": handle}
 
     client = MongoClient(MONGO_URL)
@@ -242,7 +245,7 @@ def listen_from_response_service(responded=False):
 
 
 def response_service_video(tag_id):
-    text_cta = "Your Video is ready. Visit www.bloverse.com"
+    text_cta = "Your Video is ready. Visit ..."
     path = os.getcwd() + "/videos/video.mp4"
     print(path)
     upload_result = tweepy_api.media_upload(path)
