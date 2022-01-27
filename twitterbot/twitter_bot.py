@@ -19,10 +19,13 @@ from bot_accounts_service.tasks.account import celery_account_save_to_db
 from mongodb.mongo_util import (
     get_record_details, save_to_mongo_db
         )
+from mongodb.notify_slack import notify_slack
+
 from init_twit_api import tweepy_api
 
 from config.settings import MONGO_URL
 from config.settings import TEXT_REPLY
+from config.settings import SLACK_WEBHOOK
 
 search_date = datetime.now() + timedelta(0)
 
@@ -41,8 +44,7 @@ def bot_caller_dict_func(item):
             "handle": item['user']['screen_name'],
             "bio": item['user']['description'],
             "profile_image": item['user']["profile_image_url"],
-            "tag_id": item['id'],
-            "status": "active"
+            "tag_id": item['id']
         }
 
     return _dict
@@ -117,8 +119,8 @@ def process_tweets(item):
 
                 # collection = connect_mongo_db()
                 save_to_mongo_db(data, collection)
-                tweepy_api.update_status(status = TEXT_REPLY, in_reply_to_status_id = tag_id , auto_populate_reply_metadata=True)
-
+                #tweepy_api.update_status(status = TEXT_REPLY, in_reply_to_status_id = tag_id , auto_populate_reply_metadata=True)
+                notify_slack(data, tag_id_name, SLACK_WEBHOOK)
                 celery_account_save_to_db.apply_async((bot_caller_dict,), queue="account")
                 celery_account_save_to_db.apply_async((creator_dict,), queue="account")
                 result = celery_content_save_to_db.apply_async((content_dict,), queue="content")
@@ -157,8 +159,8 @@ def process_tweets(item):
 
                 # collection = connect_mongo_db()
                 save_to_mongo_db(data, collection)
-                tweepy_api.update_status(status = TEXT_REPLY, in_reply_to_status_id = tag_id , auto_populate_reply_metadata=True)
-
+                #tweepy_api.update_status(status = TEXT_REPLY, in_reply_to_status_id = tag_id , auto_populate_reply_metadata=True)
+                notify_slack(data, tag_id_name, SLACK_WEBHOOK)
                 celery_account_save_to_db.apply_async((bot_caller_dict,), queue="account")
                 celery_account_save_to_db.apply_async((creator_dict,), queue="account")
                 result = celery_content_save_to_db.apply_async((content_dict,), queue="content")

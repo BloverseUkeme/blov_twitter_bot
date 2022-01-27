@@ -253,7 +253,7 @@ def response_service_video(tag_id):
 
 
 def response_service_text(tag_id):
-    TEXT_REPLY = "We are currently in Beta testing. You can register at ##bloversebot_landing_page"
+    TEXT_REPLY = "Hi, we're sorry but the the action you requested can't be done at the moment. Please visit bloverse.com/bot to register to be part of our private beta"
     tweepy_api.update_status(status = TEXT_REPLY, in_reply_to_status_id = tag_id , auto_populate_reply_metadata=True) 
 
 
