@@ -26,7 +26,6 @@ def remove_object_id(record_list):
 
 def data_from_twitter_bot_to_content_service(data):
     content_started_at = datetime.now()
-    print(content_started_at)
 
     search_dict = {"tag_id": data['tag_id']}
     
@@ -42,11 +41,8 @@ def data_from_twitter_bot_to_content_service(data):
         data = remove_object_id(data)
         print(data)
         celery_analysis_save_to_db.apply_async((content_started_at, data), queue="analysis")
-        # start_analysis_bot(content_started_at, data)
         
-
-        # print(f"The process too {content_ended_at - content_started_at}")
-
+    return data
 
 
 def listen_from_analysis_service(analysed=False):

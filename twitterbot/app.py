@@ -1,3 +1,5 @@
+# from __future__ import absolute_import
+
 from flask import Flask
 
 #views
@@ -14,7 +16,7 @@ CELERY_TASK_LIST = [
     "bot_accounts_service.tasks.account",
     "bot_content_service.tasks.content",
     "bot_analysis_service.tasks.analysis",
-    "twitterbot.tasks.twitter",
+    # "twitterbot.tasks.twitter",
 ]
 
 

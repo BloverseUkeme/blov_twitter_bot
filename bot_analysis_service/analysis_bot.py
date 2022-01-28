@@ -210,10 +210,8 @@ def check_account_service_status(content_started_at, data):
 
     search_query = get_record_details(search_dict, collection1, find_one=True)
 
-    print(search_query)
     if search_query:
         status = search_query.get('status')
-        print(status)
         if status == "active":
             tweet_response_dict = sort_tweets(data)
             print(tweet_response_dict)
@@ -247,13 +245,13 @@ def listen_from_response_service(responded=False):
 def response_service_video(tag_id):
     text_cta = "Your Video is ready. Visit ..."
     path = os.getcwd() + "/videos/video.mp4"
-    print(path)
+
     upload_result = tweepy_api.media_upload(path)
     tweepy_api.update_status(status = text_cta, media_ids = [upload_result.media_id_string], in_reply_to_status_id= tag_id, auto_populate_reply_metadata=True)
 
 
 def response_service_text(tag_id):
-    TEXT_REPLY = "Hi, we're sorry but the the action you requested can't be done at the moment. Please visit bloverse.com/bot to register to be part of our private beta"
+    TEXT_REPLY = "Hi, we can't perform this action at the moment. Please visit bloverse.com/bot to register your interest & be part of our private beta"
     tweepy_api.update_status(status = TEXT_REPLY, in_reply_to_status_id = tag_id , auto_populate_reply_metadata=True) 
 
 
@@ -261,3 +259,5 @@ def response_service_text(tag_id):
 def start_analysis_bot(content_started_at, data):
 
     check_account_service_status(content_started_at, data)
+
+    return data

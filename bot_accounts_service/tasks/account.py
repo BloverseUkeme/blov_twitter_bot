@@ -17,10 +17,9 @@ def celery_account_save_to_db(data):
     result = celery.send_task('account.celery_account_save_to_db', (data,), queue="account")
     data = {
         "name": "ukeme",
-        "handle": "wilson123456",
+        "handle": "FabrizioRomano",
         "bio": "python is cool",
         "profile_image": "thisismyface.jpg",
-        "status": "active"
         }
     """
 

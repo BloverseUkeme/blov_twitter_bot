@@ -19,6 +19,13 @@ def insert_records(collection, record):
     except Exception as e:
         print(e)
 
+def update_record(collection, old, new):
+    try:
+        collection.update_one(old, new)
+    except Exception as e:
+        print(e)
+
+
 def save_to_mongo_db(data, collection):
     """
         This saves the record to mongo db

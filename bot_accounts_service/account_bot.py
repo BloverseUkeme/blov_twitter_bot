@@ -4,7 +4,7 @@ from pymongo import MongoClient
 from config.settings import MONGO_URL
 
 from mongodb.mongo_util import (
-    get_record_details, save_to_mongo_db
+    get_record_details, save_to_mongo_db, update_record
 )
 
 
@@ -18,6 +18,17 @@ def save_user_to_db(data):
     collection = db.bot_users
 
     search_query = get_record_details(search_dict, collection, find_one=True)
+    try:
+        print(search_query)
+        if "active" in data.get('status'):
+            search_query['status'] = "active" 
+        print(search_query)
+
+        new_values = {"$set" : search_query}
+        update_record(collection, search_dict, new_values)
+    except Exception as e:
+        print(e)
+
 
     if not search_query:
         save_to_mongo_db(data, collection)
