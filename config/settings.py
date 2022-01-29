@@ -49,34 +49,31 @@ CELERY_QUEUES = {
             "exchange_type": "topic",
             "binding_key": "analysis.#"
         },
-        # "twitter": {
-        #     "exchange": "twitter",
-        #     "exchange_type": "topic",
-        #     "binding_key": "twitter.#"
-        # }
+        "twitter": {
+            "exchange": "twitter",
+            "exchange_type": "topic",
+            "binding_key": "twitter.#"
+        },
+        
 }
 
 
 
 
 
-# BASE_DIR = os.getcwd()
-# print(BASE_DIR)
-# UPLOAD_VIDEO = os.path.join(BASE_DIR, "videos")
-# print(UPLOAD_VIDEO)
 
 
-# MINUTE_CRON_JOB = {"hour":"*/12"}
+MINUTE_CRON_JOB = {"minute":"*/15"}
 
 
-# CELERYBEAT_SCHEDULE = {
-#         "twitter.celery_start_twitter_bot": {
-#             "task": "twitterbot.tasks.twitter.celery_start_twitter_bot",
-#             "schedule": crontab(**MINUTE_CRON_JOB),
-#             "options": {"queue" : "twitter"},
-#             # "args": ({"parallel": PARALLELIZE_EXTRACTION, "batch_id": 1},)
-#         }
-#     }
+CELERYBEAT_SCHEDULE = {
+        "twitter.celery_start_twitter_bot": {
+            "task": "twitterbot.tasks.twitter.celery_start_twitter_bot",
+            "schedule": crontab(**MINUTE_CRON_JOB),
+            "options": {"queue" : "twitter"},
+            # "args": ({"parallel": PARALLELIZE_EXTRACTION, "batch_id": 1},)
+        }
+    }
 
 
 # SLACK_WEBHOOK

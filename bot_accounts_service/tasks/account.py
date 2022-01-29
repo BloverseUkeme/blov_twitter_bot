@@ -1,7 +1,5 @@
 from bot_accounts_service.account_bot import save_user_to_db 
-from bot_accounts_service.account_bot import save_handle_to_db
-
-
+# from bot_accounts_service.account_bot import save_handle_to_db
 from twitterbot.app import create_celery_app
 
 

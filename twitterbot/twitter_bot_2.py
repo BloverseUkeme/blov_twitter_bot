@@ -186,10 +186,10 @@ class MyStreamListener(tweepy.Stream):
         return False
 
 
+twitterStream = MyStreamListener(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET, tweepy_api)
+
 def start_twitter_bot():
     
-    twitterStream = MyStreamListener(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET, tweepy_api)
-
     try:
         print('Start streaming.')
         # word = "generate" 

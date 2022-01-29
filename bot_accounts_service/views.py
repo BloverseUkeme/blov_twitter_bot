@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify
 from flask_restful import Api, Resource
 
-from bot_accounts_service.resources.account_bot_resources import AccountBot
+# from bot_accounts_service.resources.account_bot_resources import AccountBot
 
 
 class Home(Resource):
@@ -19,4 +19,4 @@ account_bot = Blueprint(
 api = Api(account_bot)
 
 api.add_resource(Home, '/account_bot')
-api.add_resource(AccountBot, '/accountbot')
+# api.add_resource(AccountBot, '/accountbot')
