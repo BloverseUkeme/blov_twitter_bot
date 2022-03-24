@@ -221,6 +221,7 @@ def generate_tweet_info(tweet_ids):
                 "tweet_image_urls": data_dict['images'],
                 "tweet_video_urls": data_dict['video_url']
                 }
+        tweet_infos.append(tweet_info)
     return tweet_infos
 
 def process_content_metadata(tag_id, tweet_id, creator_dict, bot_caller_dict):
