@@ -4,6 +4,7 @@ from datetime import datetime
 import tweepy 
 import json
 from time import sleep
+from uuid import uuid4
 
 from mongodb.mongo_util import (
     save_to_mongo_db, connect_to_mongo_db
@@ -129,6 +130,13 @@ def cleanup_tweet(tweet, twitter_handle, num_reply=0):
     return tweet_text
 
 
+def get_thread(tweet_id):
+    ### checks if its a single tweet or a thread
+    tweet_ids = []
+    tweet_id = [tweet_id]
+    return tweet_id
+
+
 def process_tweet_status(tweet_id):
     
     tweet_status = tweepy_api.get_status(tweet_id, tweet_mode="extended")._json
@@ -182,7 +190,7 @@ def process_tweet_status(tweet_id):
     try:
         video_url = tweet_status['extended_entities']['media'][0]['video_info']['variants'][0]['url']
     except:
-        video_url = "NA"
+        video_url = []
     
     
     data_dict = {
@@ -194,18 +202,36 @@ def process_tweet_status(tweet_id):
         "images": images,
         "video": video,
         "video_url": video_url
-    }
-    
+    } 
     return data_dict
 
 
+def generate_tweet_info(tweet_ids):
+    tweet_infos = []
+    for tweet_id in tweet_ids:
+        data_dict = process_tweet_status(tweet_id)
 
-def process_content_metadata(data_dict, tag_id, tweet_id, creator_dict, bot_caller_dict):
+        tweet_info = {
+                "id": tweet_id,
+                "created_at": data_dict['created_at'],
+                "language": data_dict['language'],
+                "tweet_text": data_dict['tweet'],
+                "quote_tweet_url" : data_dict['quote_tweet_url'],
+                "tweet_urls": data_dict['urls'],
+                "tweet_image_urls": data_dict['images'],
+                "tweet_video_urls": data_dict['video_url']
+                }
+    return tweet_infos
+
+def process_content_metadata(tag_id, tweet_id, creator_dict, bot_caller_dict):
     content_started_at = datetime.now()
     content_started_at = datetime.strftime(content_started_at, '%Y-%m-%d %H:%M:%S.%f')
 
+    tweet_ids = get_thread(tweet_id)
+    tweet_infos = generate_tweet_info(tweet_ids)
 
     content_metadata = {
+            "content_id": str(uuid4()),
             "content_type" : "Twitter Status",
             "tag_id": tag_id,
             "tweet_id": tweet_id,
@@ -213,16 +239,10 @@ def process_content_metadata(data_dict, tag_id, tweet_id, creator_dict, bot_call
             "bot_caller": bot_caller_dict,
             "content_started_at" : content_started_at,
             
-            "tweet_info": {
-                "id": tweet_id,
-                "created_at": data_dict['created_at'],
-                "language": data_dict['language'],
-                "tweet_text": data_dict['tweet'],
-                "quote_tweet_url" : data_dict['quote_tweet_url'],
-                "tweet_urls": data_dict['urls'],
-                "tweet_image_urls ": data_dict['images'],
-                "tweet_video_urls ": data_dict['video_url']
-                }
+            "tweet_info": tweet_infos,
+            "status":"PENDING",
+            "video_url":"",
+            "note": ""
         }
     return content_metadata
 
@@ -253,8 +273,8 @@ class MyStreamListener(tweepy.Stream):
                     creator_dict = creator_caller_dict_func(creator_data)
                     
                     # celery_content_save_to_db.apply_async((content_dict,), queue="content")
-                    data_dict = process_tweet_status(tweet_id)
-                    content_metadata = process_content_metadata(data_dict, tag_id, tweet_id, creator_dict, bot_caller_dict)
+                    # data_dict = process_tweet_status(tweet_id)
+                    content_metadata = process_content_metadata(tag_id, tweet_id, creator_dict, bot_caller_dict)
                     
                     connect_to_content_service(content_metadata)
                     save_to_mongo_db(data, collection)
@@ -274,8 +294,8 @@ class MyStreamListener(tweepy.Stream):
 
                     # celery_content_save_to_db.apply_async((content_dict,), queue="content")
                     # celery.send_task('content.celery_account_save_to_db', (content_dict,), queue="content")
-                    data_dict = process_tweet_status(quote_id)
-                    content_metadata = process_content_metadata(data_dict, tag_id, quote_id, creator_dict, bot_caller_dict)
+                    # data_dict = process_tweet_status(quote_id)
+                    content_metadata = process_content_metadata(tag_id, quote_id, creator_dict, bot_caller_dict)
                     
                     connect_to_content_service(content_metadata)
                     save_to_mongo_db(data, collection)
