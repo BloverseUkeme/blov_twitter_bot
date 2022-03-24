@@ -13,12 +13,7 @@ services:
       - '.:/twitterbot'
     ports:
       - '8001:8001'
-    networks:
-      - bot-network
 
-networks:
-  bot-network:
-    external: true
 
 
   # redis:
