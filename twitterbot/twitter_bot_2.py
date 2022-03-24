@@ -1,30 +1,24 @@
-
+import re
+import requests
 from datetime import datetime
 import tweepy 
 import json
+from time import sleep
 
-from pymongo import MongoClient
 from mongodb.mongo_util import (
-    get_record_details, save_to_mongo_db
+    save_to_mongo_db, connect_to_mongo_db
         )
-from config.settings import MONGO_URL
 
+from config.settings import MONGO_URL
 from config.settings import CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET
 from config.settings import SLACK_WEBHOOK
+from config.settings import CONTENT_SERVICE_URL
 from mongodb.notify_slack import notify_slack
-
+# from blov_twitter.twitterbot.app import create_celery_app
 
 auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
 auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
 tweepy_api = tweepy.API(auth, wait_on_rate_limit=True)
-
-
-def connect_mongo_db():
-    client = MongoClient(MONGO_URL)
-    db = client.blov_twit_bot
-    collection = db.tweet_data
-
-    return collection
 
 
 
@@ -34,8 +28,7 @@ def bot_caller_dict_func(status):
             "handle": status['user']['screen_name'],
             "bio": status['user']['description'],
             "profile_image": status['user']['profile_image_url'],
-            "tag_id": status['id'],
-            "tweet_creator": "no"
+            "tag_id": status['id']
         }
 
     return _dict
@@ -48,23 +41,21 @@ def creator_caller_dict_func(creator_data):
             "name": creator_data['name'],
             "handle": creator_data['screen_name'],
             "bio": creator_data['description'],
-            "profile_image": creator_data["profile_image_url"],
-            "tweet_creator": "yes"
+            "profile_image": creator_data["profile_image_url"]
             }
 
     return _dict
 
 
-def content_dict_func(creator_dict, bot_caller_dict, thread_id, tag_id):
+# def content_dict_func(creator_dict, bot_caller_dict, thread_id, tag_id):
 
-    _dict = {
-            "tweet_creator_dict": creator_dict,
-            "bot_caller_dict": bot_caller_dict,
-            "tweet_id": thread_id,
-            "tag_id": tag_id
-            }
-
-    return _dict
+#     _dict = {
+#             "tweet_creator_dict": creator_dict['creator_dict'],
+#             "bot_caller_dict": bot_caller_dict['bot_caller_dict'],
+#             "tweet_id": thread_id,
+#             "tag_id": tag_id
+#             }
+#     return _dict
 
 
 def tweet_tags_as_reply(status):
@@ -117,17 +108,136 @@ def tweet_tags_as_quote(status):
     return quote_id, tag_id, tag_id_name, handle, data
 
 
+def cleanup_tweet(tweet, twitter_handle, num_reply=0):
+    """
+    This function takes in a tweet and then cleans it up by removing non alphanumericals etc
+    """
+    try:
+        tweet_tokens = tweet.split()[num_reply:] # we ignore the first token which will always be the handle
+        text_list = []
+        for token in tweet_tokens:
+            temp = ''.join([i for i in token if (i.isalpha() or (i in ['.',',', '..', '…', ':', ';', '?', '"', '-', '(', ')']) or i.isdigit())])        
+            if '#' not in temp:
+                if twitter_handle not in temp:
+                    text_list.append(temp.strip())
+
+        tweet_text = ' '.join(text_list)
+        tweet_text = re.sub(r"http\S+", "", tweet_text)
+        tweet_text = tweet_text.strip()
+    except Exception as e:
+        print(e)
+    return tweet_text
+
+
+def process_tweet_status(tweet_id):
+    
+    tweet_status = tweepy_api.get_status(tweet_id, tweet_mode="extended")._json
+    
+    handle = tweet_status['user']['screen_name']
+    
+    try:
+        language = tweet_status['lang']
+    except:
+        language = "NA"
+        
+    try:
+        created_at = tweet_status['created_at']
+        created_at = datetime.strftime(datetime.strptime(created_at,'%a %b %d %H:%M:%S +0000 %Y'), '%Y-%m-%d %H:%M:%S')
+        # created_at_datetime = datetime.strptime(created_at_datetime, '%Y-%m-%d %H:%M:%S')
+    except:
+        created_at = "NA"
+        
+    try:
+        tweet = tweet_status['full_text']
+        tweet = cleanup_tweet(tweet, handle)
+    except:
+        tweet = "NA"
+    
+    try:
+        quote_tweet_url = tweet_status['quoted_status']['entities']['urls'][0]['expanded_url']
+    except:
+        quote_tweet_url = "NA"
+
+    try:
+        urls = tweet_status['entities']['urls'][0]["expanded_url"]
+        if ("twitter.com" in urls) and ("status" in urls):
+            urls = []
+    except:
+        urls = []
+        
+    try:
+        images = [item['media_url_https'] for item in tweet_status['extended_entities']['media']]
+    except:
+        images = []
+        
+    try:  
+        is_video = tweet_status['extended_entities']['media'][0]['type']
+        if is_video == "video":
+            video = "Yes"
+        else:
+            video = "No"
+    except:
+        video = "No"
+        
+    try:
+        video_url = tweet_status['extended_entities']['media'][0]['video_info']['variants'][0]['url']
+    except:
+        video_url = "NA"
+    
+    
+    data_dict = {
+        "language": language,
+        "created_at": created_at,
+        "tweet": tweet,
+        "quote_tweet_url": quote_tweet_url,
+        "urls": [urls],
+        "images": images,
+        "video": video,
+        "video_url": video_url
+    }
+    
+    return data_dict
+
+
+
+def process_content_metadata(data_dict, tag_id, tweet_id, creator_dict, bot_caller_dict):
+    content_started_at = datetime.now()
+    content_started_at = datetime.strftime(content_started_at, '%Y-%m-%d %H:%M:%S.%f')
+
+
+    content_metadata = {
+            "content_type" : "Twitter Status",
+            "tag_id": tag_id,
+            "tweet_id": tweet_id,
+            "tweet_creator" : creator_dict,
+            "bot_caller": bot_caller_dict,
+            "content_started_at" : content_started_at,
+            
+            "tweet_info": {
+                "id": tweet_id,
+                "created_at": data_dict['created_at'],
+                "language": data_dict['language'],
+                "tweet_text": data_dict['tweet'],
+                "quote_tweet_url" : data_dict['quote_tweet_url'],
+                "tweet_urls": data_dict['urls'],
+                "tweet_image_urls ": data_dict['images'],
+                "tweet_video_urls ": data_dict['video_url']
+                }
+        }
+    return content_metadata
+
+
+
+
 class MyStreamListener(tweepy.Stream):
     
     def __init__(self, CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET, tweepy_api):
         super().__init__(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
 
     def on_data(self, status):
-        from bot_content_service.tasks.content import celery_content_save_to_db
-        from bot_accounts_service.tasks.account import celery_account_save_to_db
-
+    
         status = json.loads(status.decode('utf-8'))
-        collection =  connect_mongo_db()
+        collection =  connect_to_mongo_db("blov_twit_bot", "tweet_data", MONGO_URL)
 
         bot_caller_dict = bot_caller_dict_func(status)
 
@@ -140,17 +250,15 @@ class MyStreamListener(tweepy.Stream):
                     tweet_id, tag_id, tag_id_name, handle, data = tweet_tags_as_reply(status)
                     
                     creator_data = tweepy_api.get_user(screen_name = handle)._json
-
                     creator_dict = creator_caller_dict_func(creator_data)
                     
-                    content_dict = content_dict_func(creator_dict, bot_caller_dict, tweet_id, tag_id)
+                    # celery_content_save_to_db.apply_async((content_dict,), queue="content")
+                    data_dict = process_tweet_status(tweet_id)
+                    content_metadata = process_content_metadata(data_dict, tag_id, tweet_id, creator_dict, bot_caller_dict)
                     
+                    connect_to_content_service(content_metadata)
                     save_to_mongo_db(data, collection)
                     notify_slack(data, tag_id_name, SLACK_WEBHOOK)
-
-                    celery_account_save_to_db.apply_async((bot_caller_dict,), queue="account")
-                    celery_account_save_to_db.apply_async((creator_dict,), queue="account")
-                    celery_content_save_to_db.apply_async((content_dict,), queue="content")
                     print(data)
                 except Exception as e:
                     print(e)
@@ -161,16 +269,17 @@ class MyStreamListener(tweepy.Stream):
                     quote_id, tag_id, tag_id_name, handle, data = tweet_tags_as_quote(status)
 
                     creator_data = tweepy_api.get_user(screen_name = handle)._json
-                
                     creator_dict = creator_caller_dict_func(creator_data)
+                    
 
-                    content_dict = content_dict_func(creator_dict, bot_caller_dict, quote_id, tag_id)
+                    # celery_content_save_to_db.apply_async((content_dict,), queue="content")
+                    # celery.send_task('content.celery_account_save_to_db', (content_dict,), queue="content")
+                    data_dict = process_tweet_status(quote_id)
+                    content_metadata = process_content_metadata(data_dict, tag_id, quote_id, creator_dict, bot_caller_dict)
+                    
+                    connect_to_content_service(content_metadata)
                     save_to_mongo_db(data, collection)
                     notify_slack(data, tag_id_name, SLACK_WEBHOOK)
-
-                    celery_account_save_to_db.apply_async((bot_caller_dict,), queue="account")
-                    celery_account_save_to_db.apply_async((creator_dict,), queue="account")
-                    celery_content_save_to_db.apply_async((content_dict,), queue="content")
 
                     print(data)
 
@@ -184,18 +293,37 @@ class MyStreamListener(tweepy.Stream):
     def on_error(self, status_code):
         print(status_code)
         return False
+    
+    def on_limit(self,status):
+        print ("Rate Limit Exceeded, Sleep for 15 Mins")
+        sleep(15 * 60)
+        return True
 
 
-twitterStream = MyStreamListener(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET, tweepy_api)
+def connect_to_content_service( data):
+
+    payload = json.dumps(data)
+    
+    headers = {
+      'Content-Type': 'application/json'
+    }
+
+    response = requests.request("POST", CONTENT_SERVICE_URL, headers=headers, data=payload)
+
+    print(response.text)
+
+
 
 def start_twitter_bot():
+    twitterStream = MyStreamListener(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET, tweepy_api)
     
     try:
         print('Start streaming.')
-        # word = "generate" 
         twitterStream.filter(track=["@bloversebot generate"])
     except KeyboardInterrupt:
         print("Stopped.")
     # finally:
     #     print('Done.')
     #     twitterStream.disconnect()
+
+

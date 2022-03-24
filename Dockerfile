@@ -12,7 +12,4 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-#CMD gunicorn -b 0.0.0.0:8001 --access-logfile - "twitterbot.app:create_app()"
-
-
 CMD gunicorn -c "python:config.gunicorn" "twitterbot.app:create_app()"

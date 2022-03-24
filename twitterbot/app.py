@@ -1,21 +1,14 @@
-# from __future__ import absolute_import
-
 from flask import Flask
-
-#views
-from twitterbot.views import twitter_bot
-from bot_accounts_service.views import account_bot
-from bot_content_service.views import content_bot
-from bot_analysis_service.views import analysis_bot
-
-
 from celery import Celery
 
 
+#views
+from twitterbot.views import twitter_bot
+
+
+from twitterbot.twitter_bot_2 import start_twitter_bot
+
 CELERY_TASK_LIST = [
-    "bot_accounts_service.tasks.account",
-    "bot_content_service.tasks.content",
-    "bot_analysis_service.tasks.analysis",
     "twitterbot.tasks.twitter",
 ]
 
@@ -58,6 +51,7 @@ def create_app(settings_override=None):
     :param settings_override: Override settings
     :return: Flask app
     """
+
     app = Flask(__name__, instance_relative_config=True)
 
     app.config.from_object('config.settings')
@@ -68,9 +62,8 @@ def create_app(settings_override=None):
 
 
     app.register_blueprint(twitter_bot)
-    app.register_blueprint(account_bot)
-    app.register_blueprint(content_bot)
-    app.register_blueprint(analysis_bot)
+
+    start_twitter_bot()
 
 
     return app

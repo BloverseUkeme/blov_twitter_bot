@@ -1,0 +1,9 @@
+# Cython==0.29.28
+uuid==1.30
+pandas==1.4.0
+# pandas==0.24.2
+pymongo[srv]==3.11.3
+tweepy==4.4.0
+requests==2.25.1
+python-decouple==3.4
+twint==2.1.20

@@ -1,3 +1,5 @@
+from pymongo import MongoClient
+
 def get_record_details(search_dict, collection, find_one=True):
     """
         This searches through mongodb for a single record
@@ -33,3 +35,11 @@ def save_to_mongo_db(data, collection):
     insert_records(collection, data)
     cur = collection.count_documents({})
     print(f"we have {cur} entries")
+
+
+def connect_to_mongo_db(db_name, collection_name, MONGO_URL):
+    client = MongoClient(MONGO_URL)
+    db = client[db_name]
+    collection = db[collection_name]
+
+    return collection
