@@ -25,8 +25,8 @@ tweepy_api = tweepy.API(auth, wait_on_rate_limit=True)
 
 def bot_caller_dict_func(status):
     _dict = {           
-            "name": status['user']['name'],
-            "handle": status['user']['screen_name'],
+            "name": status['user']['name'].lower(),
+            "handle": status['user']['screen_name'].lower(),
             "bio": status['user']['description'],
             "profile_image": status['user']['profile_image_url'],
             "tag_id": status['id']
@@ -39,8 +39,8 @@ def bot_caller_dict_func(status):
 def creator_caller_dict_func(creator_data):
 
     _dict = {
-            "name": creator_data['name'],
-            "handle": creator_data['screen_name'],
+            "name": creator_data['name'].lower(),
+            "handle": creator_data['screen_name'].lower(),
             "bio": creator_data['description'],
             "profile_image": creator_data["profile_image_url"]
             }
@@ -141,7 +141,7 @@ def process_tweet_status(tweet_id):
     
     tweet_status = tweepy_api.get_status(tweet_id, tweet_mode="extended")._json
     
-    handle = tweet_status['user']['screen_name']
+    handle = tweet_status['user']['screen_name'].lower()
     
     try:
         language = tweet_status['lang']
